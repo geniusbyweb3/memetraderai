@@ -425,33 +425,36 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 0;
+      padding: 10px 0;
       border-bottom: 1px solid var(--border);
       gap: 10px;
     }
     .toggle-row:last-of-type { border-bottom: none; }
     .toggle-row span { font-size: 12.5px; font-weight: 500; }
     .toggle-row .hint { font-size: 10px; color: var(--text-muted); font-weight: 400; display: block; margin-top: 1px; }
+    
+    /* Switch Fix for Mobile */
     .switch {
       position: relative;
-      width: 40px; height: 23px;
+      width: 46px; height: 26px;
       background: var(--border);
-      border-radius: 12px;
+      border-radius: 13px;
       cursor: pointer;
       transition: background var(--transition);
       flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
     }
     .switch.active { background: var(--accent); }
     .switch::after {
       content: '';
       position: absolute;
       top: 3px; left: 3px;
-      width: 17px; height: 17px;
+      width: 20px; height: 20px;
       background: #fff;
       border-radius: 50%;
       transition: transform var(--transition);
     }
-    .switch.active::after { transform: translateX(17px); }
+    .switch.active::after { transform: translateX(20px); }
 
     .log-box {
       background: var(--bg);
@@ -694,7 +697,6 @@
   <div class="app-container">
 
     <div class="main-content">
-
       <div class="filter-tabs" id="filterTabs">
         <button class="filter-tab active" data-cap="100k+">$100K+</button>
         <button class="filter-tab" data-cap="100k-500k">$100K – $500K</button>
@@ -711,11 +713,9 @@
           <div class="sub">Fetching from DexScreener · Filtering &lt; $100K by default</div>
         </div>
       </div>
-
     </div>
 
     <aside class="sidebar">
-
       <section class="panel">
         <div class="panel-header">
           <span>💼 Wallet Portfolio</span>
@@ -830,7 +830,15 @@
        CONFIG
        ============================================================ */
     const SOL_MINT = 'So11111111111111111111111111111111111111112';
-    const RPC_URL = 'https://api.mainnet-beta.solana.com';
+    
+    // RPC Fallback System to prevent 403 Access Forbidden
+    const RPC_URLS = [
+      'https://solana-rpc.publicnode.com',
+      'https://rpc.ankr.com/solana',
+      'https://api.mainnet-beta.solana.com'
+    ];
+    let currentRpcIndex = 0;
+
     const DEXSCREENER = 'https://api.dexscreener.com';
     const RUGCHECK = 'https://api.rugcheck.xyz/v1/tokens';
     const JUP_QUOTE = 'https://quote-api.jup.ag/v6/quote';
@@ -969,6 +977,22 @@
     }
 
     /* ============================================================
+       CONNECTION MANAGER (RPC Fallback)
+       ============================================================ */
+    function initConnection() {
+      if (!connection) {
+        connection = new solanaWeb3.Connection(RPC_URLS[currentRpcIndex], 'confirmed');
+      }
+      return connection;
+    }
+
+    function rotateRpc() {
+      currentRpcIndex = (currentRpcIndex + 1) % RPC_URLS.length;
+      connection = new solanaWeb3.Connection(RPC_URLS[currentRpcIndex], 'confirmed');
+      console.warn('Switched to RPC:', RPC_URLS[currentRpcIndex]);
+    }
+
+    /* ============================================================
        PHANTOM WALLET
        ============================================================ */
     async function connectWallet() {
@@ -980,7 +1004,8 @@
         provider = window.phantom.solana;
         const resp = await provider.connect();
         publicKey = resp.publicKey.toString();
-        connection = new solanaWeb3.Connection(RPC_URL, 'confirmed');
+        
+        initConnection();
 
         connectBtn.style.display = 'none';
         disconnectBtn.style.display = 'inline-flex';
@@ -989,7 +1014,9 @@
         log('Wallet connected: ' + publicKey, 'green');
         toast('Phantom connected', 'success');
 
-        startAgent();
+        // Auto-Trade switch can now be clicked safely
+        if (autoTrade) startAgent();
+        
         refreshPortfolio();
         if (portfolioRefreshInterval) clearInterval(portfolioRefreshInterval);
         portfolioRefreshInterval = setInterval(refreshPortfolio, 30_000);
@@ -1009,12 +1036,16 @@
       if (provider) provider.disconnect();
       provider = null;
       publicKey = null;
+      autoTrade = false;
+      autoTradeSwitch.classList.remove('active');
+      updateAgentUI();
+      stopAgent();
+
       connectBtn.style.display = 'inline-flex';
       disconnectBtn.style.display = 'none';
       walletPill.style.display = 'none';
       if (portfolioRefreshInterval) { clearInterval(portfolioRefreshInterval); portfolioRefreshInterval = null; }
       portfolioContent.innerHTML = '<div class="empty-state" style="padding:20px 0;font-size:12px;">Connect wallet to view portfolio</div>';
-      stopAgent();
       log('Wallet disconnected.', 'yellow');
     }
 
@@ -1040,21 +1071,14 @@
 
       const map = new Map();
 
-      // 1. Profiles: have icon, description, links — NO name/symbol
       for (const p of profiles) {
         if (p.chainId !== 'solana' || !p.tokenAddress) continue;
         map.set(p.tokenAddress, {
-          tokenAddress: p.tokenAddress,
-          chainId: 'solana',
-          icon: p.icon || null,
-          description: p.description || '',
-          links: p.links || [],
-          url: p.url || null,
-          _source: 'profile',
+          tokenAddress: p.tokenAddress, chainId: 'solana',
+          icon: p.icon || null, description: p.description || '', links: p.links || [], url: p.url || null, _source: 'profile',
         });
       }
 
-      // 2. Boosts: add boost info (may not have icon)
       for (const b of boosts) {
         if (b.chainId !== 'solana' || !b.tokenAddress) continue;
         const existing = map.get(b.tokenAddress);
@@ -1065,35 +1089,21 @@
           if (!existing.description && b.description) existing.description = b.description;
         } else {
           map.set(b.tokenAddress, {
-            tokenAddress: b.tokenAddress,
-            chainId: 'solana',
-            icon: b.icon || null,
-            description: b.description || '',
-            links: [],
-            url: b.url || null,
-            boostAmount: b.amount || 0,
-            _source: 'boost',
+            tokenAddress: b.tokenAddress, chainId: 'solana',
+            icon: b.icon || null, description: b.description || '', links: [], url: b.url || null, boostAmount: b.amount || 0, _source: 'boost',
           });
         }
       }
 
-      // 3. Search fallback: gives us tokens that may not be in profiles/boosts
       for (const p of search) {
         if (p.chainId !== 'solana') continue;
         const addr = p.baseToken?.address;
         if (!addr) continue;
         if (!map.has(addr)) {
           map.set(addr, {
-            tokenAddress: addr,
-            chainId: 'solana',
-            icon: p.info?.imageUrl || null,
-            description: '',
-            links: [],
-            url: p.url || null,
-            _source: 'search',
+            tokenAddress: addr, chainId: 'solana', icon: p.info?.imageUrl || null, description: '', links: [], url: p.url || null, _source: 'search',
           });
         } else {
-          // Enrich icon if we don't have one
           const existing = map.get(addr);
           if (!existing.icon && p.info?.imageUrl) existing.icon = p.info.imageUrl;
         }
@@ -1102,12 +1112,6 @@
       return Array.from(map.values());
     }
 
-    /**
-     * ★ FIXED MERGE ★
-     * Profiles/boosts have icon + description + links (NO name/symbol).
-     * Pair data has name + symbol + market stats.
-     * We merge both correctly so names, symbols and images all display.
-     */
     async function enrichWithPairData(profileTokens) {
       const addresses = profileTokens.map(t => t.tokenAddress).filter(Boolean);
       const chunks = [];
@@ -1118,19 +1122,15 @@
         try {
           const data = await fetchJson(`${DEXSCREENER}/latest/dex/tokens/${chunk.join(',')}`);
           for (const p of (data.pairs || [])) {
-            // The queried token is almost always baseToken — but check both sides
             let addr = p.baseToken?.address;
             let pairPriceUsd = parseFloat(p.priceUsd) || null;
             let base = p.baseToken || {};
             let quote = p.quoteToken || {};
 
-            // If our queried address isn't baseToken, try quoteToken (rare, but safe)
             if (addr && !addresses.includes(addr)) {
               if (quote.address && addresses.includes(quote.address)) {
                 addr = quote.address;
-                // Invert price if the token is quoteToken (edge case)
                 if (pairPriceUsd && pairPriceUsd > 0) pairPriceUsd = 1 / pairPriceUsd;
-                // Swap roles for metadata
                 const tmp = base; base = quote; quote = tmp;
               } else {
                 continue;
@@ -1151,31 +1151,17 @@
         const pair = entry?.pair || {};
         const base = entry?.base || {};
 
-        // ★ Name and symbol live on baseToken, NOT on the profile
         const name = base.name || null;
         const symbol = base.symbol || null;
-
-        // ★ Icon comes from profile, with pair.info.imageUrl as fallback
         const icon = profile.icon || pair.info?.imageUrl || null;
-
-        // Description: profile first, then pair info, then empty
         const description = profile.description || '';
-
-        // Links from profile, fallback to pair info socials/websites
-        const links = profile.links && profile.links.length > 0
-          ? profile.links
-          : [
-              ...(pair.info?.websites || []).map(w => ({ type: 'website', url: w.url || w })),
-              ...(pair.info?.socials || []).map(s => ({ type: s.platform, url: s.url })),
-            ];
+        const links = profile.links && profile.links.length > 0 ? profile.links : [
+          ...(pair.info?.websites || []).map(w => ({ type: 'website', url: w.url || w })),
+          ...(pair.info?.socials || []).map(s => ({ type: s.platform, url: s.url })),
+        ];
 
         return {
-          ...profile,
-          name,
-          symbol,
-          icon,
-          description,
-          links,
+          ...profile, name, symbol, icon, description, links,
           priceUsd: entry?.priceUsd ?? null,
           marketCap: pair.marketCap || pair.fdv || null,
           fdv: pair.fdv || null,
@@ -1189,7 +1175,6 @@
           pairUrl: pair.url || null,
           buyCount24h: pair.txns?.h24?.buys ?? null,
           sellCount24h: pair.txns?.h24?.sells ?? null,
-          // store for reference
           _baseToken: base,
         };
       });
@@ -1277,28 +1262,20 @@
 
       try {
         const raw = await fetchTrendingTokens();
-        log(`  Found ${raw.length} raw token entries`, 'blue');
-
         const enriched = await enrichWithPairData(raw);
-        log(`  Enriched with pair data`, 'blue');
 
-        // Keep only tradeable tokens ≥ $100K MC with valid name/symbol/pair
         const valid = enriched.filter(t =>
           t.priceUsd > 0 &&
           t.marketCap > 0 &&
           t.tokenAddress &&
           t.marketCap >= 100_000 &&
-          t.symbol &&
-          t.symbol.length > 0
+          t.symbol && t.symbol.length > 0
         );
 
-        // If names still missing (rare), synthesise from address
         for (const t of valid) {
           if (!t.symbol) t.symbol = t.tokenAddress.slice(0, 4).toUpperCase();
           if (!t.name) t.name = t.symbol;
         }
-
-        log(`  ${valid.length} tokens pass $100K MC + name filter`, 'blue');
 
         const riskResults = [];
         for (let i = 0; i < valid.length; i += 5) {
@@ -1575,24 +1552,40 @@
     });
 
     /* ============================================================
-       PORTFOLIO
+       PORTFOLIO (with RPC Fallback)
        ============================================================ */
     async function refreshPortfolio() {
-      if (!connection || !publicKey) {
+      if (!publicKey) {
         portfolioContent.innerHTML = '<div class="empty-state" style="padding:20px 0;font-size:12px;">Connect wallet to view portfolio</div>';
         return;
       }
 
       try {
-        const lamports = await connection.getBalance(new solanaWeb3.PublicKey(publicKey));
+        initConnection();
+        
+        let lamports;
+        let tokenAccounts;
+        
+        // Try to fetch SOL balance & SPL Tokens with retry mechanism
+        try {
+          lamports = await connection.getBalance(new solanaWeb3.PublicKey(publicKey));
+          tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+            new solanaWeb3.PublicKey(publicKey),
+            { programId: new solanaWeb3.PublicKey(TOKEN_PROGRAM_ID) }
+          );
+        } catch (rpcError) {
+          console.warn('RPC Error detected, rotating to fallback...', rpcError);
+          rotateRpc(); // Switch RPC
+          lamports = await connection.getBalance(new solanaWeb3.PublicKey(publicKey));
+          tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+            new solanaWeb3.PublicKey(publicKey),
+            { programId: new solanaWeb3.PublicKey(TOKEN_PROGRAM_ID) }
+          );
+        }
+
         const solBalance = lamports / 1e9;
-
-        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-          new solanaWeb3.PublicKey(publicKey),
-          { programId: new solanaWeb3.PublicKey(TOKEN_PROGRAM_ID) }
-        );
-
         const holdings = [];
+        
         for (const { account } of tokenAccounts.value) {
           const info = account.data.parsed.info;
           const amount = info.tokenAmount.uiAmount;
@@ -1666,7 +1659,7 @@
         `;
       } catch (err) {
         console.error('Portfolio error:', err);
-        portfolioContent.innerHTML = `<div class="empty-state" style="padding:20px 0;font-size:12px;color:var(--red);">Portfolio load failed: ${esc(err.message)}</div>`;
+        portfolioContent.innerHTML = `<div class="empty-state" style="padding:20px 0;font-size:12px;color:var(--red);">Portfolio load failed. Please try refreshing.</div>`;
       }
     }
 
@@ -1723,6 +1716,7 @@
        ============================================================ */
     async function executeSwap(inputMint, outputMint, amountLamports, slippageBps) {
       if (!provider || !publicKey) throw new Error('Wallet not connected');
+      initConnection();
 
       const quoteUrl = `${JUP_QUOTE}?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountLamports}&slippageBps=${slippageBps}`;
       const quoteRes = await fetch(quoteUrl);
@@ -1848,6 +1842,7 @@
       try {
         log(`🔔 Exit for ${pos.symbol}: ${reason}`, 'yellow');
         toast(`Exiting ${pos.symbol}: ${reason}`, 'info');
+        initConnection();
 
         const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
           new solanaWeb3.PublicKey(publicKey),
@@ -1926,6 +1921,10 @@
     }
 
     function startAgent() {
+      if (!provider) {
+        log('Cannot start agent: wallet not connected', 'red');
+        return;
+      }
       if (agentInterval) clearInterval(agentInterval);
       agentInterval = setInterval(agentTick, 30_000);
       log('🤖 AI agent started (30s tick)', 'green');
@@ -1946,13 +1945,27 @@
     }
 
     /* ============================================================
-       UI BINDINGS
+       UI BINDINGS (Fixed Auto-Trade Switch)
        ============================================================ */
     autoTradeSwitch.addEventListener('click', () => {
+      // 1. Check Wallet Connection
+      if (!provider) {
+        toast('Please connect your Phantom wallet first to enable Auto-Trade.', 'error');
+        return;
+      }
+
+      // 2. Toggle State
       autoTrade = !autoTrade;
-      autoTradeSwitch.classList.toggle('active', autoTrade);
-      if (autoTrade && provider) startAgent();
-      else stopAgent();
+      
+      // 3. Update UI
+      if (autoTrade) {
+        autoTradeSwitch.classList.add('active');
+        startAgent();
+      } else {
+        autoTradeSwitch.classList.remove('active');
+        stopAgent();
+      }
+      
       updateAgentUI();
       log(`Auto‑trade ${autoTrade ? 'enabled' : 'disabled'}`, autoTrade ? 'green' : 'yellow');
     });
