@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MemeTrader AI Pro — Advanced Solana Memecoin Auto‑Trader</title>
+  <script src="https://unpkg.com/@solana/web3.js@1.78.0/lib/index.iife.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #07090f;
+      --surface: #0f1219;
+      --surface2: #161b26;
+      --surface3: #1e2535;
+      --border: #252d3f;
+      --border-light: #323d52;
+      --text: #e8eaed;
+      --text-dim: #8b95a8;
+      --text-muted: #556074;
+      --accent: #ab9ff2;
+      --accent2: #7b6cf6;
+      --accent-glow: rgba(171, 159, 242, 0.22);
+      --green: #34d399;
+      --green-bg: rgba(52, 211, 153, 0.1);
+      --red: #f87171;
+      --red-bg: rgba(248, 113, 113, 0.1);
+      --yellow: #fbbf24;
+      --yellow-bg: rgba(251, 191, 36, 0.1);
+      --blue: #60a5fa;
+      --blue-bg: rgba(96, 165, 250, 0.1);
+      --radius: 14px;
+      --radius-sm: 9px;
+      --radius-xs: 6px;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 28px;
+      background: rgba(15, 18, 25, 0.92);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      backdrop-filter: blur(16px);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 17px;
+      letter-spacing: -0.03em;
+      user-select: none;
+    }
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      font-size: 19px;
+      box-shadow: 0 0 24px var(--accent-glow);
+      flex-shrink: 0;
+    }
+    .logo .badge-pro {
+      font-size: 9px;
+      font-weight: 800;
+      background: var(--accent);
+      color: #07090f;
+      padding: 3px 8px;
+      border-radius: 5px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+      font-family: var(--font);
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+      line-height: 1.2;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #07090f;
+      box-shadow: 0 3px 14px var(--accent-glow);
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 5px 20px var(--accent-glow); }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border-light);
+    }
+    .btn-outline:hover:not(:disabled) { background: var(--surface3); border-color: var(--text-muted); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover:not(:disabled) { opacity: 0.85; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-dim);
+      border: none;
+    }
+    .btn-ghost:hover { color: var(--text); background: var(--surface3); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .btn-xs { padding: 5px 10px; font-size: 11px; border-radius: var(--radius-xs); }
+    .btn-sm { padding: 7px 14px; font-size: 12px; }
+
+    .wallet-pill {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: border-color var(--transition);
+    }
+    .wallet-pill:hover { border-color: var(--accent); }
+    .wallet-pill .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      flex-shrink: 0;
+    }
+
+    .app-container {
+      display: flex;
+      flex: 1;
+      max-width: 1720px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 18px 22px;
+      gap: 22px;
+      align-items: flex-start;
+    }
+    .main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+    .sidebar {
+      width: 360px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: sticky;
+      top: 82px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      padding-bottom: 20px;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      background: var(--surface);
+      padding: 5px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .filter-tab {
+      font-family: var(--font);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 8px 15px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+    .filter-tab:hover { color: var(--text); background: var(--surface3); }
+    .filter-tab.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #07090f;
+      box-shadow: 0 3px 12px var(--accent-glow);
+    }
+    .filter-tab .count {
+      font-size: 9px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin-left: 4px;
+    }
+
+    .token-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 14px;
+    }
+    .token-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      transition: all var(--transition);
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .token-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--accent-glow);
+    }
+    .token-card-header { display: flex; align-items: center; gap: 10px; }
+    .token-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: var(--surface3);
+      flex-shrink: 0;
+    }
+    .token-icon-placeholder {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: #07090f;
+      flex-shrink: 0;
+    }
+    .token-title { flex: 1; min-width: 0; }
+    .token-symbol {
+      font-weight: 700;
+      font-size: 14.5px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .token-name {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+    .token-desc {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      line-height: 1.55;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 35px;
+    }
+    .token-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .stat-item {
+      background: var(--surface2);
+      padding: 7px 9px;
+      border-radius: var(--radius-xs);
+    }
+    .stat-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+      font-weight: 600;
+    }
+    .stat-value {
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-value.green { color: var(--green); }
+    .stat-value.red { color: var(--red); }
+
+    .potential-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .pot-tag {
+      font-size: 9.5px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+    }
+    .pot-tag.bull { background: var(--green-bg); color: var(--green); }
+    .pot-tag.bear { background: var(--red-bg); color: var(--red); }
+    .pot-tag.neutral { background: var(--yellow-bg); color: var(--yellow); }
+    .pot-tag.info { background: var(--blue-bg); color: var(--blue); }
+
+    .token-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .risk-badge.low { background: var(--green-bg); color: var(--green); }
+    .risk-badge.medium { background: var(--yellow-bg); color: var(--yellow); }
+    .risk-badge.high { background: var(--red-bg); color: var(--red); }
+    .social-links { display: flex; gap: 5px; }
+    .social-link {
+      width: 24px; height: 24px;
+      border-radius: 5px;
+      background: var(--surface2);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      text-decoration: none;
+      color: var(--text-dim);
+      transition: all var(--transition);
+    }
+    .social-link:hover { background: var(--accent); color: #07090f; }
+
+    .token-actions { display: flex; gap: 6px; margin-top: auto; }
+    .token-actions .btn { flex: 1; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-dim);
+      font-size: 13.5px;
+      grid-column: 1 / -1;
+    }
+    .empty-state .icon { font-size: 44px; margin-bottom: 14px; opacity: 0.45; }
+    .empty-state .sub { font-size: 12px; margin-top: 6px; color: var(--text-muted); }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-body { padding: 14px 16px; }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-group label {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 8px 11px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 12.5px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .form-group input::placeholder { color: var(--text-muted); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+    }
+    .toggle-row:last-of-type { border-bottom: none; }
+    .toggle-row span { font-size: 12.5px; font-weight: 500; }
+    .toggle-row .hint { font-size: 10px; color: var(--text-muted); font-weight: 400; display: block; margin-top: 1px; }
+    .switch {
+      position: relative;
+      width: 40px; height: 23px;
+      background: var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background var(--transition);
+      flex-shrink: 0;
+    }
+    .switch.active { background: var(--accent); }
+    .switch::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 17px; height: 17px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform var(--transition);
+    }
+    .switch.active::after { transform: translateX(17px); }
+
+    .log-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 11px;
+      max-height: 220px;
+      overflow-y: auto;
+      font-size: 10.5px;
+      font-family: var(--mono);
+      line-height: 1.7;
+      color: var(--text-dim);
+    }
+    .log-box .log-green { color: var(--green); }
+    .log-box .log-red { color: var(--red); }
+    .log-box .log-yellow { color: var(--yellow); }
+    .log-box .log-blue { color: var(--blue); }
+    .log-box .log-time { color: var(--text-muted); margin-right: 5px; }
+
+    .status-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .status-dot.on { background: var(--green); box-shadow: 0 0 7px var(--green); }
+    .status-dot.off { background: var(--text-muted); }
+    .spinner {
+      display: inline-block;
+      width: 13px; height: 13px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 5px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .portfolio-total {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 10px 12px;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+    }
+    .portfolio-total .label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .portfolio-total .value { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .portfolio-list { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+    .portfolio-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 10px;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      transition: background var(--transition);
+      cursor: pointer;
+    }
+    .portfolio-item:hover { background: var(--surface3); }
+    .portfolio-item .p-icon {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      background: var(--surface3);
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .portfolio-item .p-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .portfolio-item .p-info { flex: 1; min-width: 0; }
+    .portfolio-item .p-symbol { font-size: 12px; font-weight: 600; }
+    .portfolio-item .p-balance { font-size: 10px; color: var(--text-dim); }
+    .portfolio-item .p-value { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 560px;
+      max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow);
+      animation: modalIn 0.25s ease;
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.96); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 2;
+    }
+    .modal-header .token-icon, .modal-header .token-icon-placeholder { width: 48px; height: 48px; border-radius: 12px; font-size: 18px; }
+    .modal-header .info { flex: 1; min-width: 0; }
+    .modal-header .symbol { font-size: 17px; font-weight: 700; color: var(--accent); }
+    .modal-header .name { font-size: 12px; color: var(--text-dim); }
+    .modal-close {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: var(--surface3);
+      color: var(--text-dim);
+      font-size: 18px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all var(--transition);
+      flex-shrink: 0;
+    }
+    .modal-close:hover { background: var(--red-bg); color: var(--red); }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+    .modal-section-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .detail-item {
+      background: var(--surface2);
+      padding: 9px 11px;
+      border-radius: var(--radius-sm);
+    }
+    .detail-item .dl { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 2px; }
+    .detail-item .dv { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .detail-item .dv.green { color: var(--green); }
+    .detail-item .dv.red { color: var(--red); }
+    .risk-list { display: flex; flex-direction: column; gap: 5px; }
+    .risk-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      padding: 7px 9px;
+      background: var(--surface2);
+      border-radius: var(--radius-xs);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .risk-row .dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+    .risk-row .dot.danger { background: var(--red); }
+    .risk-row .dot.warn { background: var(--yellow); }
+    .risk-row .dot.info { background: var(--blue); }
+
+    .toast-container {
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1000;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--surface3);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      font-size: 12.5px;
+      box-shadow: var(--shadow);
+      animation: slideIn 0.3s ease;
+      max-width: 340px;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error { border-left: 3px solid var(--red); }
+    .toast.info { border-left: 3px solid var(--blue); }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .price-up { color: var(--green) !important; transition: color 0.3s; }
+    .price-down { color: var(--red) !important; transition: color 0.3s; }
+
+    @media (max-width: 1200px) {
+      .app-container { flex-direction: column; }
+      .sidebar { width: 100%; position: static; max-height: none; }
+      .token-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .app-container { padding: 12px; }
+      .token-grid { grid-template-columns: 1fr; }
+      header { padding: 10px 14px; }
+      .logo { font-size: 15px; }
+      .logo-icon { width: 32px; height: 32px; font-size: 16px; }
+      .token-stats { grid-template-columns: 1fr 1fr; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      MemeTrader <span class="badge-pro">PRO</span>
+    </div>
+    <div class="header-right">
+      <div class="wallet-pill" id="walletPill" title="Click to copy address">
+        <span class="dot"></span>
+        <span id="walletAddr">—</span>
+      </div>
+      <button class="btn btn-primary" id="connectBtn">🔗 Connect Phantom</button>
+      <button class="btn btn-outline" id="disconnectBtn" style="display:none">Disconnect</button>
+    </div>
+  </header>
+
+  <div class="app-container">
+
+    <div class="main-content">
+
+      <div class="filter-tabs" id="filterTabs">
+        <button class="filter-tab active" data-cap="100k+">$100K+</button>
+        <button class="filter-tab" data-cap="100k-500k">$100K – $500K</button>
+        <button class="filter-tab" data-cap="500k-1m">$500K – $1M</button>
+        <button class="filter-tab" data-cap="1m-5m">$1M – $5M</button>
+        <button class="filter-tab" data-cap="5m+">$5M+</button>
+        <button class="filter-tab" data-cap="all">All</button>
+      </div>
+
+      <div class="token-grid" id="tokenGrid">
+        <div class="empty-state">
+          <div class="icon">🔍</div>
+          <div>Loading trending tokens…</div>
+          <div class="sub">Fetching from DexScreener · Filtering &lt; $100K by default</div>
+        </div>
+      </div>
+
+    </div>
+
+    <aside class="sidebar">
+
+      <section class="panel">
+        <div class="panel-header">
+          <span>💼 Wallet Portfolio</span>
+          <button class="btn btn-ghost btn-xs" id="refreshPortfolioBtn" title="Refresh">↻</button>
+        </div>
+        <div class="panel-body">
+          <div id="portfolioContent">
+            <div class="empty-state" style="padding:20px 0;font-size:12px;">Connect wallet to view portfolio</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span>🤖 AI Agent Settings</span>
+          <span id="agentState" style="font-weight:500;text-transform:none;letter-spacing:0;font-size:11px;color:var(--text-dim);">
+            <span class="status-dot off"></span> Paused
+          </span>
+        </div>
+        <div class="panel-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Min Liquidity (USD)</label>
+              <input type="number" id="minLiquidity" value="25000" step="5000" min="0" />
+            </div>
+            <div class="form-group">
+              <label>Max Risk Score</label>
+              <input type="number" id="maxRisk" value="45" min="0" max="100" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Trade Size (SOL)</label>
+              <input type="number" id="tradeSize" value="0.05" step="0.01" min="0.001" />
+            </div>
+            <div class="form-group">
+              <label>Slippage (bps)</label>
+              <input type="number" id="slippage" value="150" step="10" min="10" max="1000" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Take Profit (%) — 0 = off</label>
+              <input type="number" id="takeProfit" value="0" step="5" min="0" max="10000" placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label>Stop Loss (%) — 0 = off</label>
+              <input type="number" id="stopLoss" value="0" step="5" min="0" max="100" placeholder="0" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Trailing Stop (%) — 0 = off</label>
+              <input type="number" id="trailingStop" value="0" step="5" min="0" max="100" placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label>Trailing Arm (%)</label>
+              <input type="number" id="trailingArm" value="50" step="5" min="0" max="1000" />
+            </div>
+          </div>
+
+          <div class="toggle-row">
+            <div><span>🤖 Auto‑Trade</span><span class="hint">Automatically buy passing tokens</span></div>
+            <div class="switch" id="autoTradeSwitch"></div>
+          </div>
+          <div class="toggle-row">
+            <div><span>🔄 Scan Loop</span><span class="hint">Rescan every 60s</span></div>
+            <div class="switch active" id="scanSwitch"></div>
+          </div>
+          <div class="toggle-row">
+            <div><span>🛡️ Rug‑Filter</span><span class="hint">Block high‑risk tokens</span></div>
+            <div class="switch active" id="rugFilterSwitch"></div>
+          </div>
+          <div class="toggle-row">
+            <div><span>📈 Momentum‑Only</span><span class="hint">Require positive 24h change</span></div>
+            <div class="switch active" id="momentumSwitch"></div>
+          </div>
+
+          <button class="btn btn-primary" id="scanBtn" style="width:100%;margin-top:12px;">🔍 Scan Now</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span>📋 Agent Log</span>
+          <button class="btn btn-ghost btn-xs" id="clearLogBtn">Clear</button>
+        </div>
+        <div class="panel-body" style="padding:10px;">
+          <div class="log-box" id="logBox">
+            <div><span class="log-time">—</span> Waiting for connection…</div>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <div class="modal-header" id="modalHeader"></div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       CONFIG
+       ============================================================ */
+    const SOL_MINT = 'So11111111111111111111111111111111111111112';
+    const RPC_URL = 'https://api.mainnet-beta.solana.com';
+    const DEXSCREENER = 'https://api.dexscreener.com';
+    const RUGCHECK = 'https://api.rugcheck.xyz/v1/tokens';
+    const JUP_QUOTE = 'https://quote-api.jup.ag/v6/quote';
+    const JUP_SWAP = 'https://quote-api.jup.ag/v6/swap';
+    const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+
+    /* ============================================================
+       STATE
+       ============================================================ */
+    let provider = null;
+    let publicKey = null;
+    let connection = null;
+    let allTokens = [];
+    let filteredTokens = [];
+    let autoTrade = false;
+    let scanLoop = true;
+    let rugFilter = true;
+    let momentumOnly = true;
+    let scanInterval = null;
+    let agentInterval = null;
+    let priceRefreshInterval = null;
+    let portfolioRefreshInterval = null;
+    let activeCapFilter = '100k+';
+    let isScanning = false;
+
+    const tradedMints = new Set();
+    const positions = new Map();
+
+    /* ============================================================
+       DOM
+       ============================================================ */
+    const $ = (id) => document.getElementById(id);
+    const connectBtn = $('connectBtn');
+    const disconnectBtn = $('disconnectBtn');
+    const walletPill = $('walletPill');
+    const walletAddr = $('walletAddr');
+    const tokenGrid = $('tokenGrid');
+    const logBox = $('logBox');
+    const scanBtn = $('scanBtn');
+    const agentState = $('agentState');
+    const autoTradeSwitch = $('autoTradeSwitch');
+    const scanSwitch = $('scanSwitch');
+    const rugFilterSwitch = $('rugFilterSwitch');
+    const momentumSwitch = $('momentumSwitch');
+    const filterTabs = $('filterTabs');
+    const toastContainer = $('toastContainer');
+    const portfolioContent = $('portfolioContent');
+    const modalOverlay = $('modalOverlay');
+    const modalHeader = $('modalHeader');
+    const modalBody = $('modalBody');
+
+    /* ============================================================
+       UTILITIES
+       ============================================================ */
+    function log(msg, type = '') {
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+      const div = document.createElement('div');
+      let cls = '';
+      if (type === 'green') cls = 'log-green';
+      if (type === 'red') cls = 'log-red';
+      if (type === 'yellow') cls = 'log-yellow';
+      if (type === 'blue') cls = 'log-blue';
+      div.innerHTML = `<span class="log-time">${time}</span><span class="${cls}">${msg}</span>`;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+      while (logBox.children.length > 250) logBox.removeChild(logBox.firstChild);
+    }
+
+    function toast(msg, type = 'info') {
+      const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+      const div = document.createElement('div');
+      div.className = `toast ${type}`;
+      div.innerHTML = `<span>${icons[type] || ''}</span><span>${msg}</span>`;
+      toastContainer.appendChild(div);
+      setTimeout(() => {
+        div.style.opacity = '0';
+        div.style.transition = 'opacity 0.3s';
+        setTimeout(() => div.remove(), 300);
+      }, 4000);
+    }
+
+    function formatUsd(n) {
+      if (n == null || isNaN(n)) return '—';
+      if (n >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
+      if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+      if (n >= 1e3) return '$' + (n / 1e3).toFixed(1) + 'K';
+      return '$' + n.toFixed(2);
+    }
+
+    function formatPrice(n) {
+      if (n == null || isNaN(n)) return '—';
+      if (n >= 1) return '$' + n.toFixed(2);
+      if (n >= 0.01) return '$' + n.toFixed(4);
+      if (n >= 0.0001) return '$' + n.toFixed(6);
+      return '$' + n.toExponential(3);
+    }
+
+    function formatPct(n) {
+      if (n == null || isNaN(n)) return '—';
+      const sign = n >= 0 ? '+' : '';
+      return sign + n.toFixed(1) + '%';
+    }
+
+    function pctClass(n) {
+      if (n == null || isNaN(n)) return '';
+      return n >= 0 ? 'green' : 'red';
+    }
+
+    function timeAgo(ts) {
+      if (!ts) return '—';
+      const diff = Date.now() - ts;
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + 'm ago';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h ago';
+      return Math.floor(hrs / 24) + 'd ago';
+    }
+
+    async function fetchJson(url, opts) {
+      const res = await fetch(url, opts);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+
+    function esc(s) {
+      if (s == null) return '';
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    function safeSymbol(t) {
+      const s = t.symbol || t.baseToken?.symbol || (t.tokenAddress ? t.tokenAddress.slice(0, 4) : '???');
+      return esc(s);
+    }
+
+    /* ============================================================
+       PHANTOM WALLET
+       ============================================================ */
+    async function connectWallet() {
+      try {
+        if (!window.phantom?.solana) {
+          toast('Phantom wallet not detected. Please install the browser extension.', 'error');
+          return;
+        }
+        provider = window.phantom.solana;
+        const resp = await provider.connect();
+        publicKey = resp.publicKey.toString();
+        connection = new solanaWeb3.Connection(RPC_URL, 'confirmed');
+
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'inline-flex';
+        walletPill.style.display = 'inline-flex';
+        walletAddr.textContent = publicKey.slice(0, 4) + '…' + publicKey.slice(-4);
+        log('Wallet connected: ' + publicKey, 'green');
+        toast('Phantom connected', 'success');
+
+        startAgent();
+        refreshPortfolio();
+        if (portfolioRefreshInterval) clearInterval(portfolioRefreshInterval);
+        portfolioRefreshInterval = setInterval(refreshPortfolio, 30_000);
+
+        provider.on('accountChanged', () => {
+          log('Wallet account changed. Reconnecting…', 'yellow');
+          disconnectWallet();
+        });
+      } catch (err) {
+        console.error(err);
+        log('Wallet connection failed: ' + err.message, 'red');
+        toast('Connection failed: ' + err.message, 'error');
+      }
+    }
+
+    function disconnectWallet() {
+      if (provider) provider.disconnect();
+      provider = null;
+      publicKey = null;
+      connectBtn.style.display = 'inline-flex';
+      disconnectBtn.style.display = 'none';
+      walletPill.style.display = 'none';
+      if (portfolioRefreshInterval) { clearInterval(portfolioRefreshInterval); portfolioRefreshInterval = null; }
+      portfolioContent.innerHTML = '<div class="empty-state" style="padding:20px 0;font-size:12px;">Connect wallet to view portfolio</div>';
+      stopAgent();
+      log('Wallet disconnected.', 'yellow');
+    }
+
+    connectBtn.addEventListener('click', connectWallet);
+    disconnectBtn.addEventListener('click', disconnectWallet);
+    walletPill.addEventListener('click', () => {
+      if (publicKey) { navigator.clipboard.writeText(publicKey); toast('Address copied', 'success'); }
+    });
+
+    /* ============================================================
+       DEXSCREENER FETCHING
+       ============================================================ */
+    async function fetchTrendingTokens() {
+      const results = await Promise.allSettled([
+        fetchJson(`${DEXSCREENER}/token-profiles/latest/v1`),
+        fetchJson(`${DEXSCREENER}/token-boosts/top/v1`),
+        fetchJson(`${DEXSCREENER}/latest/dex/search?q=SOL`),
+      ]);
+
+      const profiles = results[0].status === 'fulfilled' ? (results[0].value || []) : [];
+      const boosts   = results[1].status === 'fulfilled' ? (results[1].value || []) : [];
+      const search   = results[2].status === 'fulfilled' ? (results[2].value?.pairs || []) : [];
+
+      const map = new Map();
+
+      // 1. Profiles: have icon, description, links — NO name/symbol
+      for (const p of profiles) {
+        if (p.chainId !== 'solana' || !p.tokenAddress) continue;
+        map.set(p.tokenAddress, {
+          tokenAddress: p.tokenAddress,
+          chainId: 'solana',
+          icon: p.icon || null,
+          description: p.description || '',
+          links: p.links || [],
+          url: p.url || null,
+          _source: 'profile',
+        });
+      }
+
+      // 2. Boosts: add boost info (may not have icon)
+      for (const b of boosts) {
+        if (b.chainId !== 'solana' || !b.tokenAddress) continue;
+        const existing = map.get(b.tokenAddress);
+        if (existing) {
+          existing.boostAmount = b.amount || 0;
+          existing._source = 'both';
+          if (!existing.icon && b.icon) existing.icon = b.icon;
+          if (!existing.description && b.description) existing.description = b.description;
+        } else {
+          map.set(b.tokenAddress, {
+            tokenAddress: b.tokenAddress,
+            chainId: 'solana',
+            icon: b.icon || null,
+            description: b.description || '',
+            links: [],
+            url: b.url || null,
+            boostAmount: b.amount || 0,
+            _source: 'boost',
+          });
+        }
+      }
+
+      // 3. Search fallback: gives us tokens that may not be in profiles/boosts
+      for (const p of search) {
+        if (p.chainId !== 'solana') continue;
+        const addr = p.baseToken?.address;
+        if (!addr) continue;
+        if (!map.has(addr)) {
+          map.set(addr, {
+            tokenAddress: addr,
+            chainId: 'solana',
+            icon: p.info?.imageUrl || null,
+            description: '',
+            links: [],
+            url: p.url || null,
+            _source: 'search',
+          });
+        } else {
+          // Enrich icon if we don't have one
+          const existing = map.get(addr);
+          if (!existing.icon && p.info?.imageUrl) existing.icon = p.info.imageUrl;
+        }
+      }
+
+      return Array.from(map.values());
+    }
+
+    /**
+     * ★ FIXED MERGE ★
+     * Profiles/boosts have icon + description + links (NO name/symbol).
+     * Pair data has name + symbol + market stats.
+     * We merge both correctly so names, symbols and images all display.
+     */
+    async function enrichWithPairData(profileTokens) {
+      const addresses = profileTokens.map(t => t.tokenAddress).filter(Boolean);
+      const chunks = [];
+      for (let i = 0; i < addresses.length; i += 30) chunks.push(addresses.slice(i, i + 30));
+
+      const pairMap = new Map();
+      for (const chunk of chunks) {
+        try {
+          const data = await fetchJson(`${DEXSCREENER}/latest/dex/tokens/${chunk.join(',')}`);
+          for (const p of (data.pairs || [])) {
+            // The queried token is almost always baseToken — but check both sides
+            let addr = p.baseToken?.address;
+            let pairPriceUsd = parseFloat(p.priceUsd) || null;
+            let base = p.baseToken || {};
+            let quote = p.quoteToken || {};
+
+            // If our queried address isn't baseToken, try quoteToken (rare, but safe)
+            if (addr && !addresses.includes(addr)) {
+              if (quote.address && addresses.includes(quote.address)) {
+                addr = quote.address;
+                // Invert price if the token is quoteToken (edge case)
+                if (pairPriceUsd && pairPriceUsd > 0) pairPriceUsd = 1 / pairPriceUsd;
+                // Swap roles for metadata
+                const tmp = base; base = quote; quote = tmp;
+              } else {
+                continue;
+              }
+            }
+            if (!addr) continue;
+
+            const existing = pairMap.get(addr);
+            if (!existing || (p.liquidity?.usd || 0) > (existing.liquidity?.usd || 0)) {
+              pairMap.set(addr, { pair: p, base, priceUsd: pairPriceUsd });
+            }
+          }
+        } catch (err) { console.warn('Pair fetch error:', err.message); }
+      }
+
+      return profileTokens.map(profile => {
+        const entry = pairMap.get(profile.tokenAddress);
+        const pair = entry?.pair || {};
+        const base = entry?.base || {};
+
+        // ★ Name and symbol live on baseToken, NOT on the profile
+        const name = base.name || null;
+        const symbol = base.symbol || null;
+
+        // ★ Icon comes from profile, with pair.info.imageUrl as fallback
+        const icon = profile.icon || pair.info?.imageUrl || null;
+
+        // Description: profile first, then pair info, then empty
+        const description = profile.description || '';
+
+        // Links from profile, fallback to pair info socials/websites
+        const links = profile.links && profile.links.length > 0
+          ? profile.links
+          : [
+              ...(pair.info?.websites || []).map(w => ({ type: 'website', url: w.url || w })),
+              ...(pair.info?.socials || []).map(s => ({ type: s.platform, url: s.url })),
+            ];
+
+        return {
+          ...profile,
+          name,
+          symbol,
+          icon,
+          description,
+          links,
+          priceUsd: entry?.priceUsd ?? null,
+          marketCap: pair.marketCap || pair.fdv || null,
+          fdv: pair.fdv || null,
+          liquidityUsd: pair.liquidity?.usd || null,
+          volume24h: pair.volume?.h24 || null,
+          priceChange24h: pair.priceChange?.h24 ?? null,
+          priceChange6h: pair.priceChange?.h6 ?? null,
+          priceChange1h: pair.priceChange?.h1 ?? null,
+          pairCreatedAt: pair.pairCreatedAt || null,
+          dexId: pair.dexId || null,
+          pairUrl: pair.url || null,
+          buyCount24h: pair.txns?.h24?.buys ?? null,
+          sellCount24h: pair.txns?.h24?.sells ?? null,
+          // store for reference
+          _baseToken: base,
+        };
+      });
+    }
+
+    /* ============================================================
+       RUGCHECK
+       ============================================================ */
+    async function fetchRugCheck(mint) {
+      try {
+        const res = await fetch(`${RUGCHECK}/${mint}/report`);
+        if (!res.ok) return { score: 50, risks: [{ name: 'No report', level: 'info', description: 'RugCheck data unavailable' }] };
+        const data = await res.json();
+        let riskScore = 50;
+        if (typeof data.score_normalised === 'number') riskScore = data.score_normalised;
+        else if (typeof data.score === 'number') riskScore = 100 - data.score;
+
+        const risks = [];
+        if (Array.isArray(data.risks)) {
+          for (const r of data.risks) {
+            risks.push({
+              name: r.name || 'Risk',
+              level: r.level === 'danger' ? 'danger' : r.level === 'warn' ? 'warn' : 'info',
+              description: r.description || r.value || '',
+            });
+          }
+        }
+        if (data.lpLockedPct === 0) {
+          risks.push({ name: 'LP Not Locked', level: 'danger', description: 'Liquidity can be pulled at any time' });
+        }
+        return { score: Math.round(Math.max(0, Math.min(100, riskScore))), risks };
+      } catch {
+        return { score: 50, risks: [{ name: 'Risk check failed', level: 'info', description: 'Could not reach RugCheck' }] };
+      }
+    }
+
+    /* ============================================================
+       POTENTIAL TAGS
+       ============================================================ */
+    function getPotentialReasons(t) {
+      const tags = [];
+      const mc = t.marketCap || 0;
+
+      if (mc > 0 && mc < 100_000) tags.push({ label: 'Micro Cap', cls: 'info', tip: 'Under $100K — high risk, high reward' });
+      else if (mc >= 100_000 && mc < 500_000) tags.push({ label: 'Low Cap', cls: 'bull', tip: 'Room for 5–10x upside' });
+      else if (mc >= 500_000 && mc < 1_000_000) tags.push({ label: 'Sub‑1M Cap', cls: 'bull', tip: 'Approaching $1M milestone' });
+      else if (mc >= 1_000_000 && mc < 5_000_000) tags.push({ label: 'Mid Cap', cls: 'neutral', tip: 'More established, moderate upside' });
+
+      const volLiq = t.volume24h && t.liquidityUsd ? t.volume24h / t.liquidityUsd : 0;
+      if (volLiq > 2) tags.push({ label: 'High Volume', cls: 'bull', tip: `Vol/Liq ${volLiq.toFixed(1)}x — strong trading interest` });
+      else if (volLiq > 0.5) tags.push({ label: 'Healthy Volume', cls: 'neutral', tip: `Vol/Liq ${volLiq.toFixed(1)}x` });
+
+      if (t.priceChange24h > 50) tags.push({ label: '🚀 Pumping', cls: 'bull', tip: `+${t.priceChange24h.toFixed(0)}% in 24h` });
+      else if (t.priceChange24h > 10) tags.push({ label: '📈 Uptrend', cls: 'bull', tip: `+${t.priceChange24h.toFixed(0)}% in 24h` });
+      else if (t.priceChange24h < -30) tags.push({ label: '📉 Dumping', cls: 'bear', tip: `${t.priceChange24h.toFixed(0)}% in 24h` });
+
+      if (t.riskScore < 25) tags.push({ label: 'Low Risk', cls: 'bull', tip: 'RugCheck score is favourable' });
+      else if (t.riskScore > 65) tags.push({ label: 'High Risk', cls: 'bear', tip: 'Multiple risk flags detected' });
+
+      if (t.buyCount24h && t.sellCount24h && t.sellCount24h > 0) {
+        const ratio = t.buyCount24h / t.sellCount24h;
+        if (ratio > 1.5) tags.push({ label: 'Buy Pressure', cls: 'bull', tip: `Buy/Sell ratio ${ratio.toFixed(1)}x` });
+      }
+
+      if (t.pairCreatedAt) {
+        const ageHrs = (Date.now() - t.pairCreatedAt) / 3_600_000;
+        if (ageHrs < 24) tags.push({ label: '🆕 New', cls: 'neutral', tip: 'Pair < 24h old' });
+        else if (ageHrs > 24 * 30) tags.push({ label: 'Established', cls: 'info', tip: '30+ days old' });
+      }
+
+      if (t.boostAmount && t.boostAmount > 0) tags.push({ label: '⚡ Boosted', cls: 'neutral', tip: 'Active DexScreener boost' });
+
+      return tags;
+    }
+
+    /* ============================================================
+       MAIN SCAN
+       ============================================================ */
+    async function scanTokens() {
+      if (isScanning) return;
+      isScanning = true;
+      scanBtn.disabled = true;
+      scanBtn.innerHTML = '<span class="spinner"></span> Scanning…';
+      log('🔍 Scanning DexScreener for trending Solana memecoins…');
+
+      try {
+        const raw = await fetchTrendingTokens();
+        log(`  Found ${raw.length} raw token entries`, 'blue');
+
+        const enriched = await enrichWithPairData(raw);
+        log(`  Enriched with pair data`, 'blue');
+
+        // Keep only tradeable tokens ≥ $100K MC with valid name/symbol/pair
+        const valid = enriched.filter(t =>
+          t.priceUsd > 0 &&
+          t.marketCap > 0 &&
+          t.tokenAddress &&
+          t.marketCap >= 100_000 &&
+          t.symbol &&
+          t.symbol.length > 0
+        );
+
+        // If names still missing (rare), synthesise from address
+        for (const t of valid) {
+          if (!t.symbol) t.symbol = t.tokenAddress.slice(0, 4).toUpperCase();
+          if (!t.name) t.name = t.symbol;
+        }
+
+        log(`  ${valid.length} tokens pass $100K MC + name filter`, 'blue');
+
+        const riskResults = [];
+        for (let i = 0; i < valid.length; i += 5) {
+          const batch = valid.slice(i, i + 5);
+          const risks = await Promise.all(batch.map(t => fetchRugCheck(t.tokenAddress)));
+          riskResults.push(...risks);
+        }
+
+        const final = valid.map((t, i) => ({
+          ...t,
+          riskScore: riskResults[i]?.score ?? 50,
+          risks: riskResults[i]?.risks ?? [],
+        }));
+
+        final.sort((a, b) => (a.marketCap || 0) - (b.marketCap || 0));
+
+        allTokens = final;
+        updateFilterCounts();
+        applyCapFilter(activeCapFilter);
+        log(`✅ Scan complete: ${allTokens.length} tokens (≥$100K MC).`, 'green');
+        toast(`${allTokens.length} tokens loaded (≥$100K MC)`, 'success');
+      } catch (err) {
+        console.error(err);
+        log('Scan error: ' + err.message, 'red');
+        toast('Scan failed: ' + err.message, 'error');
+      } finally {
+        isScanning = false;
+        scanBtn.disabled = false;
+        scanBtn.innerHTML = '🔍 Scan Now';
+      }
+    }
+
+    /* ============================================================
+       FILTERS
+       ============================================================ */
+    function updateFilterCounts() {
+      const counts = {
+        '100k+': allTokens.filter(t => t.marketCap >= 100_000).length,
+        '100k-500k': allTokens.filter(t => t.marketCap >= 100_000 && t.marketCap < 500_000).length,
+        '500k-1m': allTokens.filter(t => t.marketCap >= 500_000 && t.marketCap < 1_000_000).length,
+        '1m-5m': allTokens.filter(t => t.marketCap >= 1_000_000 && t.marketCap < 5_000_000).length,
+        '5m+': allTokens.filter(t => t.marketCap >= 5_000_000).length,
+        'all': allTokens.length,
+      };
+      filterTabs.querySelectorAll('.filter-tab').forEach(tab => {
+        const cap = tab.dataset.cap;
+        const existing = tab.querySelector('.count');
+        if (existing) existing.remove();
+        if (counts[cap] !== undefined) {
+          const span = document.createElement('span');
+          span.className = 'count';
+          span.textContent = counts[cap];
+          tab.appendChild(span);
+        }
+      });
+    }
+
+    function applyCapFilter(cap) {
+      activeCapFilter = cap;
+      let filtered = allTokens;
+      if (cap === '100k+') filtered = allTokens.filter(t => t.marketCap >= 100_000);
+      else if (cap === '100k-500k') filtered = allTokens.filter(t => t.marketCap >= 100_000 && t.marketCap < 500_000);
+      else if (cap === '500k-1m') filtered = allTokens.filter(t => t.marketCap >= 500_000 && t.marketCap < 1_000_000);
+      else if (cap === '1m-5m') filtered = allTokens.filter(t => t.marketCap >= 1_000_000 && t.marketCap < 5_000_000);
+      else if (cap === '5m+') filtered = allTokens.filter(t => t.marketCap >= 5_000_000);
+      else if (cap === 'all') filtered = allTokens;
+
+      filteredTokens = filtered;
+      renderTokenGrid();
+    }
+
+    filterTabs.addEventListener('click', (e) => {
+      const tab = e.target.closest('.filter-tab');
+      if (!tab) return;
+      filterTabs.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      applyCapFilter(tab.dataset.cap);
+    });
+
+    /* ============================================================
+       RENDER TOKEN GRID
+       ============================================================ */
+    function renderIconHtml(t, sizeClass) {
+      const symbol = t.symbol || '?';
+      const initial = symbol[0].toUpperCase();
+      const cls = sizeClass || 'token-icon';
+      if (t.icon) {
+        return `<img class="${cls}" src="${esc(t.icon)}" alt="${esc(symbol)}"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
+          <div class="token-icon-placeholder" style="display:none">${esc(initial)}</div>`;
+      }
+      return `<div class="token-icon-placeholder">${esc(initial)}</div>`;
+    }
+
+    function renderTokenGrid() {
+      if (filteredTokens.length === 0) {
+        tokenGrid.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📭</div>
+            <div>No tokens in this market-cap range</div>
+            <div class="sub">Try a different filter or rescan</div>
+          </div>`;
+        return;
+      }
+
+      tokenGrid.innerHTML = filteredTokens.map(t => {
+        const riskCls = t.riskScore < 30 ? 'low' : t.riskScore < 60 ? 'medium' : 'high';
+        const riskLabel = t.riskScore < 30 ? 'Low Risk' : t.riskScore < 60 ? 'Medium' : 'High Risk';
+        const website = t.links?.find(l => l.type === 'website')?.url || '#';
+        const twitter = t.links?.find(l => (l.label || '').toLowerCase().includes('twitter') || (l.type || '').toLowerCase().includes('twitter'))?.url;
+        const telegram = t.links?.find(l => (l.label || '').toLowerCase().includes('telegram') || (l.type || '').toLowerCase().includes('telegram'))?.url;
+
+        const potentials = getPotentialReasons(t);
+        const symbol = safeSymbol(t);
+        const name = esc(t.name || 'Unknown');
+        const mint = t.tokenAddress;
+
+        return `
+          <div class="token-card" data-mint="${mint}" onclick="openTokenModal('${mint}')">
+            <div class="token-card-header">
+              ${renderIconHtml(t)}
+              <div class="token-title">
+                <div class="token-symbol">${symbol}</div>
+                <div class="token-name">${name}</div>
+              </div>
+              <span class="risk-badge ${riskCls}">${riskLabel}</span>
+            </div>
+
+            <div class="token-desc">${esc(t.description || 'No description available.')}</div>
+
+            <div class="potential-tags">
+              ${potentials.slice(0, 4).map(p => `<span class="pot-tag ${p.cls}" title="${esc(p.tip)}">${esc(p.label)}</span>`).join('')}
+            </div>
+
+            <div class="token-stats">
+              <div class="stat-item">
+                <div class="stat-label">Mkt Cap</div>
+                <div class="stat-value">${formatUsd(t.marketCap)}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Price</div>
+                <div class="stat-value" data-price="${mint}">${formatPrice(t.priceUsd)}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">24h</div>
+                <div class="stat-value ${pctClass(t.priceChange24h)}">${formatPct(t.priceChange24h)}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Liquidity</div>
+                <div class="stat-value">${formatUsd(t.liquidityUsd)}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Volume</div>
+                <div class="stat-value">${formatUsd(t.volume24h)}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Age</div>
+                <div class="stat-value">${timeAgo(t.pairCreatedAt)}</div>
+              </div>
+            </div>
+
+            <div class="token-meta">
+              <div class="social-links" onclick="event.stopPropagation()">
+                ${website !== '#' ? `<a class="social-link" href="${esc(website)}" target="_blank" rel="noopener" title="Website">🌐</a>` : ''}
+                ${twitter ? `<a class="social-link" href="${esc(twitter)}" target="_blank" rel="noopener" title="Twitter">𝕏</a>` : ''}
+                ${telegram ? `<a class="social-link" href="${esc(telegram)}" target="_blank" rel="noopener" title="Telegram">✈️</a>` : ''}
+              </div>
+              <span style="font-size:9.5px;color:var(--text-muted);">Risk ${t.riskScore}/100</span>
+            </div>
+
+            <div class="token-actions" onclick="event.stopPropagation()">
+              <button class="btn btn-outline btn-sm" onclick="manualBuy('${mint}','${symbol}')">Buy</button>
+              <button class="btn btn-primary btn-sm" onclick="viewOnDex('${mint}')">Chart</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.viewOnDex = function (mint) {
+      window.open(`https://dexscreener.com/solana/${mint}`, '_blank');
+    };
+
+    /* ============================================================
+       MODAL
+       ============================================================ */
+    window.openTokenModal = function (mint) {
+      const t = allTokens.find(x => x.tokenAddress === mint);
+      if (!t) return;
+
+      const riskCls = t.riskScore < 30 ? 'low' : t.riskScore < 60 ? 'medium' : 'high';
+      const riskLabel = t.riskScore < 30 ? 'Low Risk' : t.riskScore < 60 ? 'Medium Risk' : 'High Risk';
+      const potentials = getPotentialReasons(t);
+      const symbol = safeSymbol(t);
+      const name = esc(t.name || 'Unknown');
+
+      modalHeader.innerHTML = `
+        ${renderIconHtml(t, 'token-icon')}
+        <div class="info">
+          <div class="symbol">${symbol}</div>
+          <div class="name">${name}</div>
+        </div>
+        <span class="risk-badge ${riskCls}">${riskLabel}</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      `;
+
+      modalBody.innerHTML = `
+        <div>
+          <div class="modal-section-title">Description</div>
+          <div style="font-size:13px;line-height:1.6;color:var(--text-dim);">${esc(t.description || 'No description available.')}</div>
+        </div>
+
+        <div>
+          <div class="modal-section-title">Potential Signals</div>
+          <div class="potential-tags">
+            ${potentials.map(p => `<span class="pot-tag ${p.cls}" title="${esc(p.tip)}">${esc(p.label)}</span>`).join('') || '<span style="font-size:12px;color:var(--text-muted);">No strong signals detected</span>'}
+          </div>
+        </div>
+
+        <div>
+          <div class="modal-section-title">Market Data</div>
+          <div class="detail-grid">
+            <div class="detail-item"><div class="dl">Market Cap</div><div class="dv">${formatUsd(t.marketCap)}</div></div>
+            <div class="detail-item"><div class="dl">FDV</div><div class="dv">${formatUsd(t.fdv)}</div></div>
+            <div class="detail-item"><div class="dl">Price</div><div class="dv">${formatPrice(t.priceUsd)}</div></div>
+            <div class="detail-item"><div class="dl">Liquidity</div><div class="dv">${formatUsd(t.liquidityUsd)}</div></div>
+            <div class="detail-item"><div class="dl">24h Volume</div><div class="dv">${formatUsd(t.volume24h)}</div></div>
+            <div class="detail-item"><div class="dl">24h Change</div><div class="dv ${pctClass(t.priceChange24h)}">${formatPct(t.priceChange24h)}</div></div>
+            <div class="detail-item"><div class="dl">6h Change</div><div class="dv ${pctClass(t.priceChange6h)}">${formatPct(t.priceChange6h)}</div></div>
+            <div class="detail-item"><div class="dl">1h Change</div><div class="dv ${pctClass(t.priceChange1h)}">${formatPct(t.priceChange1h)}</div></div>
+            <div class="detail-item"><div class="dl">24h Buys</div><div class="dv">${t.buyCount24h ?? '—'}</div></div>
+            <div class="detail-item"><div class="dl">24h Sells</div><div class="dv">${t.sellCount24h ?? '—'}</div></div>
+            <div class="detail-item"><div class="dl">Pair Age</div><div class="dv">${timeAgo(t.pairCreatedAt)}</div></div>
+            <div class="detail-item"><div class="dl">DEX</div><div class="dv">${esc(t.dexId || '—')}</div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="modal-section-title">Risk Analysis (RugCheck)</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <span class="risk-badge ${riskCls}">${riskLabel} — ${t.riskScore}/100</span>
+            <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${t.riskScore}%;background:${t.riskScore<30?'var(--green)':t.riskScore<60?'var(--yellow)':'var(--red)'};border-radius:3px;transition:width 0.4s;"></div>
+            </div>
+          </div>
+          <div class="risk-list">
+            ${(t.risks || []).slice(0, 8).map(r => `
+              <div class="risk-row">
+                <span class="dot ${r.level}"></span>
+                <div><strong>${esc(r.name)}</strong>${r.description ? `<br><span style="color:var(--text-muted);font-size:10.5px;">${esc(r.description)}</span>` : ''}</div>
+              </div>
+            `).join('') || '<div style="font-size:12px;color:var(--text-muted);">No specific risks reported</div>'}
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" style="flex:1;" onclick="manualBuy('${mint}','${symbol}');closeModal();">Buy ${symbol}</button>
+          <button class="btn btn-outline" style="flex:1;" onclick="viewOnDex('${mint}')">View Chart</button>
+        </div>
+      `;
+
+      modalOverlay.classList.add('open');
+    };
+
+    window.closeModal = function () {
+      modalOverlay.classList.remove('open');
+    };
+
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    /* ============================================================
+       PORTFOLIO
+       ============================================================ */
+    async function refreshPortfolio() {
+      if (!connection || !publicKey) {
+        portfolioContent.innerHTML = '<div class="empty-state" style="padding:20px 0;font-size:12px;">Connect wallet to view portfolio</div>';
+        return;
+      }
+
+      try {
+        const lamports = await connection.getBalance(new solanaWeb3.PublicKey(publicKey));
+        const solBalance = lamports / 1e9;
+
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+          new solanaWeb3.PublicKey(publicKey),
+          { programId: new solanaWeb3.PublicKey(TOKEN_PROGRAM_ID) }
+        );
+
+        const holdings = [];
+        for (const { account } of tokenAccounts.value) {
+          const info = account.data.parsed.info;
+          const amount = info.tokenAmount.uiAmount;
+          if (!amount || amount <= 0) continue;
+          holdings.push({ mint: info.mint, balance: amount });
+        }
+
+        if (holdings.length === 0 && solBalance < 0.001) {
+          portfolioContent.innerHTML = '<div class="empty-state" style="padding:20px 0;font-size:12px;">No tokens found in this wallet</div>';
+          return;
+        }
+
+        const allMints = [SOL_MINT, ...holdings.map(h => h.mint)];
+        const priceMap = new Map();
+        const chunks = [];
+        for (let i = 0; i < allMints.length; i += 30) chunks.push(allMints.slice(i, i + 30));
+
+        for (const chunk of chunks) {
+          try {
+            const data = await fetchJson(`${DEXSCREENER}/latest/dex/tokens/${chunk.join(',')}`);
+            for (const p of (data.pairs || [])) {
+              const addr = p.baseToken?.address;
+              if (addr && !priceMap.has(addr)) {
+                priceMap.set(addr, parseFloat(p.priceUsd) || 0);
+              }
+            }
+          } catch (err) { console.warn('Portfolio price error:', err.message); }
+        }
+
+        const solPrice = priceMap.get(SOL_MINT) || 0;
+        const rows = [{
+          mint: SOL_MINT, symbol: 'SOL', name: 'Solana',
+          balance: solBalance, value: solBalance * solPrice, icon: null,
+        }];
+
+        for (const h of holdings) {
+          const found = allTokens.find(t => t.tokenAddress === h.mint);
+          const price = priceMap.get(h.mint) || 0;
+          rows.push({
+            mint: h.mint,
+            symbol: found?.symbol || h.mint.slice(0, 4).toUpperCase(),
+            name: found?.name || '',
+            balance: h.balance,
+            value: h.balance * price,
+            icon: found?.icon || null,
+          });
+        }
+
+        rows.sort((a, b) => b.value - a.value);
+        const totalValue = rows.reduce((s, r) => s + r.value, 0);
+
+        portfolioContent.innerHTML = `
+          <div class="portfolio-total">
+            <span class="label">Total Value</span>
+            <span class="value">${formatUsd(totalValue)}</span>
+          </div>
+          <div class="portfolio-list">
+            ${rows.map(r => `
+              <div class="portfolio-item" onclick="openTokenModal('${r.mint}')">
+                <div class="p-icon">
+                  ${r.icon ? `<img src="${esc(r.icon)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${esc((r.symbol||'?')[0])}'">` : esc((r.symbol || '?')[0])}
+                </div>
+                <div class="p-info">
+                  <div class="p-symbol">${esc(r.symbol)}</div>
+                  <div class="p-balance">${r.balance < 0.001 ? r.balance.toExponential(2) : r.balance.toFixed(4)}</div>
+                </div>
+                <div class="p-value">${formatUsd(r.value)}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } catch (err) {
+        console.error('Portfolio error:', err);
+        portfolioContent.innerHTML = `<div class="empty-state" style="padding:20px 0;font-size:12px;color:var(--red);">Portfolio load failed: ${esc(err.message)}</div>`;
+      }
+    }
+
+    $('refreshPortfolioBtn').addEventListener('click', () => {
+      log('Refreshing portfolio…');
+      refreshPortfolio();
+    });
+
+    /* ============================================================
+       LIVE PRICE REFRESH
+       ============================================================ */
+    async function refreshPrices() {
+      if (allTokens.length === 0) return;
+      const addresses = allTokens.map(t => t.tokenAddress);
+      const chunks = [];
+      for (let i = 0; i < addresses.length; i += 30) chunks.push(addresses.slice(i, i + 30));
+
+      for (const chunk of chunks) {
+        try {
+          const data = await fetchJson(`${DEXSCREENER}/latest/dex/tokens/${chunk.join(',')}`);
+          for (const p of (data.pairs || [])) {
+            const addr = p.baseToken?.address;
+            if (!addr) continue;
+            const token = allTokens.find(t => t.tokenAddress === addr);
+            if (token) {
+              token.priceUsd = parseFloat(p.priceUsd) || token.priceUsd;
+              token.marketCap = p.marketCap || p.fdv || token.marketCap;
+              token.liquidityUsd = p.liquidity?.usd ?? token.liquidityUsd;
+              token.volume24h = p.volume?.h24 ?? token.volume24h;
+              token.priceChange24h = p.priceChange?.h24 ?? token.priceChange24h;
+            }
+          }
+        } catch (err) { console.warn('Price refresh error:', err.message); }
+      }
+
+      for (const t of allTokens) {
+        const el = document.querySelector(`[data-price="${t.tokenAddress}"]`);
+        if (el) {
+          const old = parseFloat(el.textContent.replace(/[$,]/g, ''));
+          const neu = t.priceUsd;
+          el.textContent = formatPrice(neu);
+          if (old && neu) {
+            el.classList.remove('price-up', 'price-down');
+            if (neu > old) el.classList.add('price-up');
+            else if (neu < old) el.classList.add('price-down');
+            setTimeout(() => el.classList.remove('price-up', 'price-down'), 1500);
+          }
+        }
+      }
+    }
+
+    /* ============================================================
+       JUPITER SWAP
+       ============================================================ */
+    async function executeSwap(inputMint, outputMint, amountLamports, slippageBps) {
+      if (!provider || !publicKey) throw new Error('Wallet not connected');
+
+      const quoteUrl = `${JUP_QUOTE}?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountLamports}&slippageBps=${slippageBps}`;
+      const quoteRes = await fetch(quoteUrl);
+      if (!quoteRes.ok) throw new Error('Quote failed: ' + quoteRes.status);
+      const quoteResponse = await quoteRes.json();
+
+      const swapRes = await fetch(JUP_SWAP, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quoteResponse, userPublicKey: publicKey, wrapAndUnwrapSol: true }),
+      });
+      if (!swapRes.ok) throw new Error('Swap build failed: ' + swapRes.status);
+      const { swapTransaction } = await swapRes.json();
+
+      const transactionBuf = Buffer.from(swapTransaction, 'base64');
+      const transaction = solanaWeb3.Transaction.from(transactionBuf);
+      const signed = await provider.signTransaction(transaction);
+
+      const txid = await connection.sendRawTransaction(signed.serialize(), {
+        skipPreflight: true, maxRetries: 3,
+      });
+      await connection.confirmTransaction(txid, 'confirmed');
+      return txid;
+    }
+
+    /* ============================================================
+       MANUAL BUY
+       ============================================================ */
+    window.manualBuy = async function (mint, symbol) {
+      if (!provider) { toast('Connect Phantom first.', 'error'); return; }
+      try {
+        const solAmount = parseFloat($('tradeSize').value) || 0.01;
+        const lamports = Math.round(solAmount * 1e9);
+        const slippageBps = parseInt($('slippage').value) || 150;
+        const tp = parseFloat($('takeProfit').value) || 0;
+        const sl = parseFloat($('stopLoss').value) || 0;
+        const trail = parseFloat($('trailingStop').value) || 0;
+        const trailArm = parseFloat($('trailingArm').value) || 50;
+
+        log(`🛒 Manual buy ${symbol} with ${solAmount} SOL…`, 'yellow');
+        toast(`Buying ${symbol}…`, 'info');
+
+        const txid = await executeSwap(SOL_MINT, mint, lamports, slippageBps);
+        log(`✅ Bought ${symbol}! Tx: ${txid.slice(0, 8)}…`, 'green');
+        toast(`Bought ${symbol} successfully!`, 'success');
+        tradedMints.add(mint);
+
+        const token = allTokens.find(t => t.tokenAddress === mint);
+        const entryPrice = token?.priceUsd || 0;
+        if (entryPrice > 0) {
+          positions.set(mint, {
+            entryPrice, peakPrice: entryPrice, tp, sl, trail, trailArm, symbol,
+          });
+          log(`📊 Position: ${symbol} @ ${formatPrice(entryPrice)}${tp ? ` | TP +${tp}%` : ''}${sl ? ` | SL -${sl}%` : ''}${trail ? ` | Trail ${trail}% (arm +${trailArm}%)` : ''}`, 'blue');
+        }
+      } catch (err) {
+        log(`❌ Buy failed: ${err.message}`, 'red');
+        toast(`Buy failed: ${err.message}`, 'error');
+      }
+    };
+
+    /* ============================================================
+       AI AGENT
+       ============================================================ */
+    function evaluateToken(token) {
+      const minLiq = parseFloat($('minLiquidity').value) || 0;
+      const maxRisk = parseFloat($('maxRisk').value) || 100;
+      const reasons = [];
+      let pass = true;
+
+      if (!token.liquidityUsd || token.liquidityUsd < minLiq) {
+        pass = false;
+        reasons.push(`Liq ${formatUsd(token.liquidityUsd)} < ${formatUsd(minLiq)}`);
+      }
+      if (rugFilter && token.riskScore > maxRisk) {
+        pass = false;
+        reasons.push(`Risk ${token.riskScore} > ${maxRisk}`);
+      }
+      if (!token.priceUsd || token.priceUsd <= 0) {
+        pass = false;
+        reasons.push('Invalid price');
+      }
+      if (momentumOnly && token.priceChange24h != null && token.priceChange24h <= 0) {
+        pass = false;
+        reasons.push('Negative 24h momentum');
+      }
+      return { pass, reasons };
+    }
+
+    function checkExits() {
+      if (positions.size === 0) return;
+
+      for (const [mint, pos] of positions.entries()) {
+        const token = allTokens.find(t => t.tokenAddress === mint);
+        if (!token || !token.priceUsd) continue;
+        const price = token.priceUsd;
+        if (price > pos.peakPrice) pos.peakPrice = price;
+
+        const changePct = ((price - pos.entryPrice) / pos.entryPrice) * 100;
+        let exitReason = null;
+
+        if (pos.tp > 0 && changePct >= pos.tp) {
+          exitReason = `TP hit (+${changePct.toFixed(1)}% ≥ +${pos.tp}%)`;
+        }
+        if (!exitReason && pos.sl > 0 && changePct <= -pos.sl) {
+          exitReason = `SL hit (${changePct.toFixed(1)}% ≤ -${pos.sl}%)`;
+        }
+        if (!exitReason && pos.trail > 0) {
+          const peakProfitPct = ((pos.peakPrice - pos.entryPrice) / pos.entryPrice) * 100;
+          if (peakProfitPct >= pos.trailArm) {
+            const dropFromPeak = ((pos.peakPrice - price) / pos.peakPrice) * 100;
+            if (dropFromPeak >= pos.trail) {
+              exitReason = `Trailing stop (drop ${dropFromPeak.toFixed(1)}% from peak)`;
+            }
+          }
+        }
+
+        if (exitReason) executeExit(mint, pos, exitReason);
+      }
+    }
+
+    async function executeExit(mint, pos, reason) {
+      try {
+        log(`🔔 Exit for ${pos.symbol}: ${reason}`, 'yellow');
+        toast(`Exiting ${pos.symbol}: ${reason}`, 'info');
+
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+          new solanaWeb3.PublicKey(publicKey),
+          { mint: new solanaWeb3.PublicKey(mint) }
+        );
+
+        let balanceLamports = 0;
+        if (tokenAccounts.value.length > 0) {
+          const info = tokenAccounts.value[0].account.data.parsed.info;
+          balanceLamports = parseInt(info.tokenAmount.amount);
+        }
+        if (balanceLamports <= 0) {
+          positions.delete(mint);
+          return;
+        }
+
+        const slippageBps = parseInt($('slippage').value) || 150;
+        const txid = await executeSwap(mint, SOL_MINT, balanceLamports, slippageBps);
+        log(`  ✅ Sold ${pos.symbol}! Tx: ${txid.slice(0, 8)}…`, 'green');
+        toast(`Sold ${pos.symbol} — ${reason}`, 'success');
+        positions.delete(mint);
+      } catch (err) {
+        log(`  ❌ Exit failed for ${pos.symbol}: ${err.message}`, 'red');
+      }
+    }
+
+    async function agentTick() {
+      if (!autoTrade) return;
+      if (!provider || !publicKey) {
+        log('Auto‑trade skipped: wallet not connected', 'yellow');
+        return;
+      }
+      checkExits();
+
+      if (filteredTokens.length === 0) {
+        log('🤖 No tokens to evaluate (empty filter).');
+        return;
+      }
+
+      log(`🤖 Agent evaluating ${filteredTokens.length} tokens…`);
+
+      for (const token of filteredTokens) {
+        if (tradedMints.has(token.tokenAddress)) continue;
+        const evaluation = evaluateToken(token);
+        const sym = token.symbol || '???';
+
+        if (evaluation.pass) {
+          log(`  ✅ ${sym} passed (risk ${token.riskScore}, liq ${formatUsd(token.liquidityUsd)})`, 'green');
+          try {
+            const solAmount = parseFloat($('tradeSize').value) || 0.01;
+            const lamports = Math.round(solAmount * 1e9);
+            const slippageBps = parseInt($('slippage').value) || 150;
+            log(`  🚀 Buying ${sym} with ${solAmount} SOL…`, 'yellow');
+            const txid = await executeSwap(SOL_MINT, token.tokenAddress, lamports, slippageBps);
+            log(`  ✅ Bought ${sym}! Tx: ${txid.slice(0, 8)}…`, 'green');
+            toast(`Auto-bought ${sym}`, 'success');
+            tradedMints.add(token.tokenAddress);
+
+            const tp = parseFloat($('takeProfit').value) || 0;
+            const sl = parseFloat($('stopLoss').value) || 0;
+            const trail = parseFloat($('trailingStop').value) || 0;
+            const trailArm = parseFloat($('trailingArm').value) || 50;
+            if (token.priceUsd > 0) {
+              positions.set(token.tokenAddress, {
+                entryPrice: token.priceUsd, peakPrice: token.priceUsd,
+                tp, sl, trail, trailArm, symbol: sym,
+              });
+            }
+          } catch (err) {
+            log(`  ❌ Buy failed: ${err.message}`, 'red');
+          }
+        } else {
+          log(`  ⛔ ${sym} filtered: ${evaluation.reasons.join('; ')}`);
+        }
+      }
+    }
+
+    function startAgent() {
+      if (agentInterval) clearInterval(agentInterval);
+      agentInterval = setInterval(agentTick, 30_000);
+      log('🤖 AI agent started (30s tick)', 'green');
+      updateAgentUI();
+    }
+
+    function stopAgent() {
+      if (agentInterval) { clearInterval(agentInterval); agentInterval = null; }
+      log('🤖 AI agent paused', 'yellow');
+      updateAgentUI();
+    }
+
+    function updateAgentUI() {
+      const running = autoTrade && !!provider;
+      agentState.innerHTML = running
+        ? '<span class="status-dot on"></span> Running'
+        : '<span class="status-dot off"></span> Paused';
+    }
+
+    /* ============================================================
+       UI BINDINGS
+       ============================================================ */
+    autoTradeSwitch.addEventListener('click', () => {
+      autoTrade = !autoTrade;
+      autoTradeSwitch.classList.toggle('active', autoTrade);
+      if (autoTrade && provider) startAgent();
+      else stopAgent();
+      updateAgentUI();
+      log(`Auto‑trade ${autoTrade ? 'enabled' : 'disabled'}`, autoTrade ? 'green' : 'yellow');
+    });
+
+    scanSwitch.addEventListener('click', () => {
+      scanLoop = !scanLoop;
+      scanSwitch.classList.toggle('active', scanLoop);
+      if (scanLoop) {
+        if (scanInterval) clearInterval(scanInterval);
+        scanInterval = setInterval(scanTokens, 60_000);
+        log('Scan loop resumed (60s)', 'green');
+      } else {
+        if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+        log('Scan loop paused', 'yellow');
+      }
+    });
+
+    rugFilterSwitch.addEventListener('click', () => {
+      rugFilter = !rugFilter;
+      rugFilterSwitch.classList.toggle('active', rugFilter);
+      log(`Rug‑filter ${rugFilter ? 'enabled' : 'disabled'}`, rugFilter ? 'green' : 'yellow');
+    });
+
+    momentumSwitch.addEventListener('click', () => {
+      momentumOnly = !momentumOnly;
+      momentumSwitch.classList.toggle('active', momentumOnly);
+      log(`Momentum‑only ${momentumOnly ? 'enabled' : 'disabled'}`, momentumOnly ? 'green' : 'yellow');
+    });
+
+    scanBtn.addEventListener('click', scanTokens);
+    $('clearLogBtn').addEventListener('click', () => { logBox.innerHTML = ''; log('Log cleared.'); });
+
+    /* ============================================================
+       BOOT
+       ============================================================ */
+    window.addEventListener('load', () => {
+      if (window.phantom?.solana?.isConnected) connectWallet();
+      scanTokens();
+      scanInterval = setInterval(scanTokens, 60_000);
+      priceRefreshInterval = setInterval(refreshPrices, 15_000);
+      log('MemeTrader AI Pro ready. Minimum market cap: $100K.', 'blue');
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (scanInterval) clearInterval(scanInterval);
+      if (agentInterval) clearInterval(agentInterval);
+      if (priceRefreshInterval) clearInterval(priceRefreshInterval);
+      if (portfolioRefreshInterval) clearInterval(portfolioRefreshInterval);
+    });
+  </script>
+</body>
+</html>
